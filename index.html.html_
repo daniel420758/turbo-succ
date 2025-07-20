@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trivia Libro de Mormón con Categorías y Niveles</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 700px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    background: #f2f2f2;
+    color: #333;
+  }
+  h1, h2 {
+    text-align: center;
+  }
+  button {
+    padding: 0.5rem 1rem;
+    margin: 0.3rem;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  #menu, #registro, #ronda, #puntajes, #posiciones, #finTiempo {
+    display: none;
+    margin-top: 1rem;
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 0 10px #ccc;
+  }
+  label {
+    display: block;
+    margin: 0.5rem 0 0.2rem;
+  }
+  select, input[type="text"] {
+    padding: 0.3rem;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 1rem;
+  }
+  .opcion-btn {
+    display: block;
+    margin: 0.5rem 0;
+    width: 100%;
+    text-align: left;
+  }
+  .correcto {
+    color: green;
+    font-weight: bold;
+  }
+  .incorrecto {
+    color: red;
+    font-weight: bold;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+  th, td {
+    border: 1px solid #999;
+    padding: 0.5rem;
+    text-align: left;
+  }
+  #temporizador {
+    font-size: 1.2rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+</style>
+</head>
+<body>
+
+<h1>Trivia del Libro de Mormón</h1>
+<div id="temporizador">Tiempo restante: 60:00</div>
+
+<!-- Menú principal -->
+<div id="menu">
+  <h2>Menú Principal</h2>
+  
+  <label for="selectCategoria">Categoría:</label>
+  <select id="selectCategoria">
+    <option value="Todas">Todas</option>
+    <option value="Profetas">Profetas</option>
+    <option value="Lugares">Lugares</option>
+    <option value="Eventos">Eventos</option>
+  </select>
+
+  <label for="selectNivel">Nivel:</label>
+  <select id="selectNivel">
+    <option value="Todos">Todos</option>
+    <option value="Fácil">Fácil</option>
+    <option value="Medio">Medio</option>
+    <option value="Difícil">Difícil</option>
+  </select>
+
+  <button onclick="mostrarSeccion('registro')">1. Agregar jugador</button>
+  <button onclick="iniciarRonda()">2. Jugar ronda</button>
+  <button onclick="mostrarPuntajes()">3. Mostrar puntajes</button>
+  <button onclick="mostrarTotalPuntajes()">4. Ver total de puntajes</button>
+  <button onclick="salir()">5. Salir</button>
+  <button onclick="mostrarPosiciones()">6. Ver tribus y posiciones</button>
+</div>
+
+<!-- Registro de jugador -->
+<div id="registro">
+  <h2>Agregar jugador</h2>
+  <label for="nombreJugador">Nombre:</label>
+  <input type="text" id="nombreJugador" maxlength="20" />
+  <button onclick="agregarJugador()">Agregar</button>
+  <button onclick="volverMenu()">Volver al menú</button>
+  <div id="mensajeRegistro" style="margin-top:0.5rem;"></div>
+</div>
+
+<!-- Ronda de preguntas -->
+<div id="ronda">
+  <h2 id="tituloRonda"></h2>
+  <div id="preguntaActual"></div>
+  <div id="opciones"></div>
+  <button id="btnSiguiente" onclick="siguientePregunta()" style="display:none;">Siguiente pregunta</button>
+  <button onclick="terminarRonda()" style="margin-top:1rem;">Terminar ronda</button>
+  <div id="mensajeRespuesta" style="margin-top:0.5rem;"></div>
+</div>
+
+<!-- Mostrar puntajes -->
+<div id="puntajes">
+  <h2>Puntajes actuales</h2>
+  <div id="listaPuntajes"></div>
+  <button onclick="volverMenu()">Volver al menú</button>
+</div>
+
+<!-- Tabla posiciones y tribus -->
+<div id="posiciones">
+  <h2>Tabla de posiciones y tribus</h2>
+  <div id="tablaPosiciones"></div>
+  <button onclick="volverMenu()">Volver al menú</button>
+</div>
+
+<!-- Fin de tiempo -->
+<div id="finTiempo">
+  <h2>¡Tiempo agotado! 60 minutos cumplidos.</h2>
+  <div id="resultadoFinal"></div>
+  <button onclick="reiniciarJuego()">Reiniciar juego</button>
+</div>
+
+<script>
+  // ... código anterior igual ...
+
+  // Mostrar pregunta actual
+  function mostrarPregunta() {
+    limpiarMensajes();
+    const preguntaDiv = document.getElementById('preguntaActual');
+    const opcionesDiv = document.getElementById('opciones');
+    const btnSiguiente = document.getElementById('btnSiguiente');
+    btnSiguiente.style.display = 'none';
+    const pregunta = preguntasRonda[preguntaActualIdx];
+
+    preguntaDiv.textContent = pregunta.pregunta;
+    opcionesDiv.innerHTML = '';
+    pregunta.opciones.forEach((opcion, idx) => {
+      const letra = opcion.charAt(0); // "A", "B", etc.
+      const btn = document.createElement('button');
+      btn.textContent = opcion;
+      btn.className = 'opcion-btn';
+      btn.onclick = function () {
+        responderPregunta(letra);
+      };
+      opcionesDiv.appendChild(btn);
+    });
+  }
+
+  // Responder pregunta
+  function responderPregunta(letra) {
+    const pregunta = preguntasRonda[preguntaActualIdx];
+    const mensajeDiv = document.getElementById('mensajeRespuesta');
+    const jugador = jugadoresRonda[jugadorActualIdx];
+    if (letra === pregunta.respuesta) {
+      mensajeDiv.textContent = '¡Correcto!';
+      mensajeDiv.className = 'correcto';
+      jugadores[jugador].puntaje += 10;
+    } else {
+      mensajeDiv.textContent = `Incorrecto. La respuesta era: ${pregunta.respuesta})`;
+      mensajeDiv.className = 'incorrecto';
+    }
+    // Deshabilitar botones de opciones
+    const opcionesBtns = document.querySelectorAll('#opciones .opcion-btn');
+    opcionesBtns.forEach(btn => btn.disabled = true);
+    document.getElementById('btnSiguiente').style.display = 'inline-block';
+  }
+
+  // Siguiente pregunta o jugador
+  function siguientePregunta() {
+    const totalJugadores = jugadoresRonda.length;
+    jugadorActualIdx = (jugadorActualIdx + 1) % totalJugadores;
+    if (jugadorActualIdx === 0) {
+      preguntaActualIdx++;
+    }
+    if (preguntaActualIdx >= preguntasRonda.length) {
+      terminarRonda();
+      return;
+    }
+    document.getElementById('tituloRonda').textContent = `Turno de ${jugadoresRonda[jugadorActualIdx]}`;
+    mostrarPregunta();
+  }
+
+  // Terminar ronda
+  function terminarRonda() {
+    mostrarSeccion('puntajes');
+    mostrarPuntajes();
+  }
+
+  // Mostrar puntajes actuales
+  function mostrarPuntajes() {
+    mostrarSeccion('puntajes');
+    const lista = Object.entries(jugadores)
+      .map(([nombre, info]) => `<li>${nombre}: ${info.puntaje} puntos</li>`)
+      .join('');
+    document.getElementById('listaPuntajes').innerHTML = `<ul>${lista}</ul>`;
+  }
+
+  // Mostrar total de puntajes
+  function mostrarTotalPuntajes() {
+    mostrarPuntajes();
+  }
+
+  // Asignar tribus (simple ejemplo, puedes mejorar)
+  function asignarTribu(nombre) {
+    const tribus = ['Manasés','Efraín','Judá','Leví'];
+    return tribus[nombre.charCodeAt(0) % tribus.length];
+  }
+
+  // Mostrar posiciones y tribus
+  function mostrarPosiciones() {
+    mostrarSeccion('posiciones');
+    const datos = Object.entries(jugadores)
+      .map(([nombre, info]) => ({
+        nombre,
+        puntaje: info.puntaje,
+        tribu: asignarTribu(nombre)
+      }))
+      .sort((a, b) => b.puntaje - a.puntaje);
+    let tabla = `<table><thead><tr><th>Posición</th><th>Nombre</th><th>Puntaje</th><th>Tribu</th></tr></thead><tbody>`;
+    datos.forEach((j, idx) => {
+      tabla += `<tr><td>${idx+1}</td><td>${j.nombre}</td><td>${j.puntaje}</td><td>${j.tribu}</td></tr>`;
+    });
+    tabla += '</tbody></table>';
+    document.getElementById('tablaPosiciones').innerHTML = tabla;
+  }
+
+  // Salir - recargar página
+  function salir() {
+    if (confirm('¿Seguro que desea salir? Se perderán los datos actuales.')) {
+      location.reload();
+    }
+  }
+
+  // Finalizar juego por tiempo
+  function finalizarJuego() {
+    mostrarSeccion('finTiempo');
+    mostrarResultadosFinales();
+  }
+
+  // Mostrar resultados finales
+  function mostrarResultadosFinales() {
+    const datos = Object.entries(jugadores)
+      .map(([nombre, info]) => ({
+        nombre,
+        puntaje: info.puntaje,
+        tribu: asignarTribu(nombre)
+      }))
+      .sort((a, b) => b.puntaje - a.puntaje);
+    let tabla = `<table><thead><tr><th>Posición</th><th>Nombre</th><th>Puntaje</th><th>Tribu</th></tr></thead><tbody>`;
+    datos.forEach((j, idx) => {
+      tabla += `<tr><td>${idx+1}</td><td>${j.nombre}</td><td>${j.puntaje}</td><td>${j.tribu}</td></tr>`;
+    });
+    tabla += '</tbody></table>';
+    document.getElementById('resultadoFinal').innerHTML = tabla;
+  }
+
+  // Reiniciar juego
+  function reiniciarJuego() {
+    jugadores = {};
+    mostrarSeccion('menu');
+    tiempoLimiteSeg = 60*60;
+    iniciarTemporizador();
+  }
+
+  // Inicialización
+  window.onload = function() {
+    mostrarSeccion('menu');
+    iniciarTemporizador();
+  };
+</script>
+</body>
+</html>
